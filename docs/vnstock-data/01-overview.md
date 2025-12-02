@@ -73,11 +73,7 @@ vnstock_data/
 
 ### Cài Đặt Thư Viện
 
-Các gói thư viện vnstock_data được cài đặt **chung** thông qua chương trình cài đặt của Vnstock. Để cài đặt và kích hoạt vnstock_data, vui lòng tham khảo hướng dẫn chi tiết tại:
-
-**🔗 [Hướng Dẫn Cài Đặt Vnstock](https://vnstocks.com/onboard-member)**
-
-Sau khi hoàn thành cài đặt, bạn có thể bắt đầu sử dụng các module trong vnstock_data ngay lập tức.
+Các gói thư viện vnstock_data được cài đặt **chung** thông qua chương trình cài đặt của Vnstock. Để cài đặt và kích hoạt vnstock_data, vui lòng tham khảo hướng dẫn chi tiết tại **[Hướng Dẫn Cài Đặt Vnstock](https://vnstocks.com/onboard-member)**.
 
 ### Cách Sử Dụng Cơ Bản
 
@@ -149,35 +145,22 @@ df_price = quote.history(start="2024-01-01", end="2024-12-31", interval="1D")
 - Dữ liệu có thể không đầy đủ, không liên tục hoặc có sai lệch so với nguồn gốc
 - Vnstock và tác giả **không chịu trách nhiệm** về bất kỳ tổn thất nào phát sinh từ việc sử dụng dữ liệu
 
-### Cài Đặt Vnstock
-
-Các gói thư viện vnstock_data được cài đặt **chung** thông qua chương trình cài đặt của Vnstock. Để cài đặt và kích hoạt vnstock_data, vui lòng tham khảo hướng dẫn chi tiết tại:
-
-**🔗 [Hướng Dẫn Cài Đặt Vnstock](https://vnstocks.com/onboard-member)**
-
-Sau khi hoàn thành cài đặt, bạn có thể bắt đầu sử dụng các module trong vnstock_data ngay lập tức.
-
 ### Cấu Trúc Tài Liệu Này
 
 Tài liệu được chia thành các phần chính:
 
-1. **01-overview.md** (Tệp này) - Tổng quan, cách sử dụng cơ bản
-2. **02-listing.md** - Danh sách niêm yết, phân ngành, chỉ số
-3. **03-quote.md** - Lịch sử giá, OHLCV, intraday, price depth
-4. **04-company.md** - Thông tin công ty, cổ đông, ban lãnh đạo
-5. **05-finance.md** - Báo cáo tài chính, chỉ số, kế hoạch
-6. **06-trading.md** - Giao dịch, bảng giá, thống kê
-7. **07-market.md** - Định giá thị trường (P/E, P/B)
-8. **08-insights.md** - Top stock (gainer, loser, volume, deal)
-9. **09-macro.md** - Kinh tế vĩ mô (GDP, CPI, FDI, tỷ giá)
-10. **10-commodity.md** - Giá hàng hóa (vàng, dầu, khí, nông sản)
-11. **11-fund.md** - Dữ liệu quỹ ETF
-12. **12-data-sources.md** - Ma trận support các nguồn dữ liệu
-13. **13-best-practices.md** - Best practices và tips sử dụng
+1. **[01-overview.md](01-overview.md)** (Tệp này) - Tổng quan, cách sử dụng cơ bản
+2. **[02-listing.md](02-listing.md)** - Danh sách niêm yết, phân ngành, chỉ số
+3. **[03-quote.md](03-quote.md)** - Lịch sử giá, OHLCV, intraday, price depth
+4. **[04-company.md](04-company.md)** - Thông tin công ty, cổ đông, ban lãnh đạo
+5. **[05-finance.md](05-finance.md)** - Báo cáo tài chính, chỉ số, kế hoạch
+6. **[06-trading.md](06-trading.md)** - Giao dịch, bảng giá, thống kê
+7. **[07-market.md](07-market.md)** - Định giá thị trường (P/E, P/B)
+8. **[08-insights.md](08-insights.md)** - Top stock (gainer, loser, volume, deal)
+9. **[09-macro.md](09-macro.md)** - Kinh tế vĩ mô (GDP, CPI, FDI, tỷ giá)
+10. **[10-commodity.md](10-commodity.md)** - Giá hàng hóa (vàng, dầu, khí, nông sản)
+11. **[11-fund.md](11-fund.md)** - Dữ liệu quỹ ETF
+12. **[12-data-sources.md](12-data-sources.md)** - Ma trận support các nguồn dữ liệu
+13. **[13-best-practices.md](13-best-practices.md)** - Best practices và tips sử dụng
 
-Mỗi phần đều cấp chi tiết:
-- **Giới thiệu**: Loại dữ liệu, ứng dụng
-- **Initialization**: Cách khởi tạo đối tượng
-- **Methods**: Danh sách methods, tham số, kiểu dữ liệu trả về
-- **Ví dụ**: Code examples cụ thể
-- **Tips**: Mẹo sử dụng, sai lầm cần tránh
+> **Lưu ý**: Để tìm hiểu chi tiết hơn về các lỗi phổ biến, tips tối ưu, templates sử dụng và so sánh các nguồn dữ liệu, vui lòng xem **[README.md](README.md)**.

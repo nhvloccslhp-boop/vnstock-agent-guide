@@ -50,74 +50,7 @@ Các gói thư viện vnstock_data được cài đặt **chung** thông qua ch�
 
 ## 🔍 Danh Sách API Nhanh
 
-### Listing
-```python
-listing.all_symbols()
-listing.symbols_by_industries(industry="Ngân hàng")
-listing.symbols_by_exchange(exchange="HOSE")
-listing.symbols_by_group(group="VN30")
-```
-
-### Quote
-```python
-quote.history(start="2024-01-01", end="2024-12-31", interval="1D")
-quote.intraday()
-quote.price_depth()
-```
-
-### Company
-```python
-company.overview()
-company.shareholders()
-company.officers()
-company.subsidiaries()
-company.news()
-company.events()
-company.trading_stats()
-```
-
-### Finance
-```python
-fin.balance_sheet(lang="vi")
-fin.income_statement(lang="vi")
-fin.cash_flow(lang="vi")
-fin.ratio(lang="vi")
-fin.annual_plan(lang="vi")  # MAS only
-```
-
-### Trading
-```python
-trading.price_board(symbol_list=[...])
-trading.price_history(start="2024-01-01", end="2024-12-31")
-trading.foreign_trade(start="2024-01-01", end="2024-12-31")
-trading.prop_trade(start="2024-01-01", end="2024-12-31")
-trading.insider_deal()
-trading.order_stats(start="2024-01-01", end="2024-12-31")
-```
-
-### Market
-```python
-market.pe()
-market.pb()
-market.evaluation()
-```
-
-### Macro
-```python
-macro.gdp()
-macro.cpi()
-macro.exchange_rate()
-macro.fdi()
-macro.money_supply()
-```
-
-### Commodity
-```python
-commodity.gold_vn()
-commodity.oil_crude()
-commodity.steel_hrc()
-commodity.pork_north_vn()
-```
+Xem **[01-overview.md](01-overview.md#các-loại-dữ-liệu-chính)** để tìm danh sách các loại dữ liệu chính và các ví dụ sử dụng cơ bản. Để tìm API chi tiết cho từng module, vui lòng xem các file tương ứng (02-listing.md, 03-quote.md, v.v.)
 
 ## ⚠️ Những Lỗi Phổ Biến Cần Tránh
 
@@ -133,7 +66,7 @@ listing = Listing(source="vci")
 listing.industry()
 ```
 
-**Giải Pháp**: Kiểm tra file `13-data-sources.md` để xác nhận nguồn hỗ trợ.
+**Giải Pháp**: Kiểm tra file **[12-data-sources.md](12-data-sources.md)** để xác nhận nguồn hỗ trợ.
 
 ### Lỗi 2: Format Ngày Không Đúng
 
@@ -170,6 +103,8 @@ else:
     df['MA20'] = df['close'].rolling(20).mean()
 ```
 
+> **Tìm hiểu thêm**: Xem **[13-best-practices.md](13-best-practices.md)** để biết chi tiết hơn về các patterns, optimization tips, và xử lý lỗi.
+
 ## 📊 Use Cases Phổ Biến
 
 ### Phân Tích Kỹ Thuật
@@ -189,67 +124,24 @@ else:
 
 ## 🚀 Tips Tối Ưu
 
-### Hiệu Suất
-- Dùng **VCI** cho danh sách đầy đủ
-- Dùng **VND** cho Quote nếu cần tốc độ cao
-- Cache dữ liệu để tránh gọi API nhiều lần
+**Hiệu Suất**: Dùng **VCI** cho danh sách đầy đủ, dùng **VND** cho Quote nếu cần tốc độ cao, cache dữ liệu để tránh gọi API nhiều lần.
 
-### Chất Lượng Dữ Liệu
-- Luôn kiểm tra dữ liệu trống (`.empty`)
-- Validate dữ liệu (high >= low, OHLC hợp lệ)
-- So sánh từ nhiều nguồn khi cần đảm bảo độ chính xác
+**Chất Lượng Dữ Liệu**: Luôn kiểm tra dữ liệu trống (`.empty`), validate dữ liệu (high >= low, OHLC hợp lệ), so sánh từ nhiều nguồn khi cần đảm bảo độ chính xác.
 
-### Xử Lý Lỗi
-- Implement retry logic cho API calls
-- Sử dụng try-except và log chi tiết
-- Fallback sang nguồn khác nếu một nguồn thất bại
+**Xử Lý Lỗi**: Implement retry logic cho API calls, sử dụng try-except và log chi tiết, fallback sang nguồn khác nếu một nguồn thất bại.
+
+> **Chi tiết nâng cao**: Xem **[13-best-practices.md](13-best-practices.md)** để tìm các patterns tối ưu, caching layer, error handling chi tiết, và data validation.
 
 ## 📝 Template Nhanh
 
-### Template 1: Lấy Giá Lịch Sử
-```python
-from vnstock_data import Quote
+Xem **[13-best-practices.md](13-best-practices.md)** để tìm các templates sử dụng:
 
-quote = Quote(source="vnd", symbol="VCB")
-df = quote.history(start="2024-01-01", end="2024-12-31", interval="1D")
-print(df[['time', 'close']].head())
-```
+- **Template 1**: Lấy Giá Lịch Sử
+- **Template 2**: Lấy BCTC
+- **Template 3**: Screening
+- **Template 4**: Kinh Tế Vĩ Mô
 
-### Template 2: Lấy BCTC
-```python
-from vnstock_data import Finance
-
-fin = Finance(source="vci", symbol="VCB", period="year")
-df_bs = fin.balance_sheet(lang="vi")
-df_ic = fin.income_statement(lang="vi")
-df_cf = fin.cash_flow(lang="vi")
-```
-
-### Template 3: Screening
-```python
-from vnstock_data import Listing, Quote
-
-listing = Listing(source="vci")
-all_stocks = listing.all_symbols()
-hose = all_stocks[all_stocks['exchange'] == 'HOSE']
-
-# Lấy giá cho mỗi cổ phiếu
-for symbol in hose['symbol'].head(10):
-    quote = Quote(source="vnd", symbol=symbol)
-    df = quote.history(start="2024-11-01", end="2024-11-30")
-    price = df['close'].iloc[-1]
-    print(f"{symbol}: {price}")
-```
-
-### Template 4: Kinh Tế Vĩ Mô
-```python
-from vnstock_data import Macro
-
-macro = Macro(source="mbk")
-df_gdp = macro.gdp()
-df_cpi = macro.cpi()
-df_fdi = macro.fdi()
-```
+Hoặc xem các file 02-listing.md, 03-quote.md, 05-finance.md, v.v. để tìm code examples cụ thể cho từng module.
 
 ## 📄 Lưu Ý Bản Quyền
 
