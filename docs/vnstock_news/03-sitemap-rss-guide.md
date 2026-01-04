@@ -178,20 +178,20 @@ curl https://domain.com/category/feed.rss
 
 Bảng dưới đây liệt kê sitemap và RSS của các báo chính:
 
-| Báo | Domain | Sitemap | RSS |
-|-----|--------|---------|-----|
-| **VnExpress** | vnexpress.net | request bằng curl hoặc Python sẽ thấy, thường bị website chuyển hướng khi mở trên trình duyệt | ✅ [tin-moi-nhat](https://vnexpress.net/rss/tin-moi-nhat.rss) |
-| **Tuổi Trẻ** | tuoitre.vn | ✅ [news-sitemap](https://tuoitre.vn/news-sitemap.xml) | ✅ [feed.rss](https://tuoitre.vn/feed.rss) |
-| **CafeF** | cafef.vn | ✅ [latest-news-sitemap](https://cafef.vn/latest-news-sitemap.xml) | ✅ [RSS](https://cafef.vn/rss.xml) |
-| **CafeBiz** | cafebiz.vn | ✅ [sitemap](https://cafebiz.vn/sitemap.xml) | ✅ [RSS feeds](https://cafebiz.vn/rss/) |
-| **VietStock** | vietstock.vn | ✅ [news-sitemap](https://vietstock.vn/news-sitemap.xml) | ✅ [RSS](https://vietstock.vn/rss/) |
-| **VnEconomy** | vneconomy.vn | ✅ [latest-news](https://vneconomy.vn/latest-news.xml) | ✅ |
-| **Báo Đầu Tư** | baodautu.vn | ✅ [sitemap](https://baodautu.vn/sitemap.xml) | ✅ |
-| **PLO** | plo.vn | ✅ [monthly](https://plo.vn/sitemaps/news-{year}-{month}.xml) | ✅ |
-| **Báo Mới** | baomoi.com | ✅ [sitemap](https://baomoi.com/sitemap.xml) | ✅ |
-| **Thế Giới Tài Chính** | thesaigontimes.vn | ✅ [incremental](https://thesaigontimes.vn/sitemaps/) | ✅ |
-| **Nhịp Cầu Đầu Tư** | nhipcaudautu.vn | ✅ [sitemap](https://nhipcaudautu.vn/sitemap.xml) | ✅ |
-| **Công Thương** | congthuong.vn | ✅ [sitemap](https://congthuong.vn/sitemap.xml) | ✅ |
+| Báo                    | Domain            | Sitemap                                                                                       | RSS                                                          |
+| ---------------------- | ----------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **VnExpress**          | vnexpress.net     | request bằng curl hoặc Python sẽ thấy, thường bị website chuyển hướng khi mở trên trình duyệt | ✅ [tin-moi-nhat](https://vnexpress.net/rss/tin-moi-nhat.rss) |
+| **Tuổi Trẻ**           | tuoitre.vn        | ✅ [news-sitemap](https://tuoitre.vn/news-sitemap.xml)                                         | ✅ [feed.rss](https://tuoitre.vn/feed.rss)                    |
+| **CafeF**              | cafef.vn          | ✅ [latest-news-sitemap](https://cafef.vn/latest-news-sitemap.xml)                             | ✅ [RSS](https://cafef.vn/rss.xml)                            |
+| **CafeBiz**            | cafebiz.vn        | ✅ [sitemap](https://cafebiz.vn/sitemap.xml)                                                   | ✅ [RSS feeds](https://cafebiz.vn/rss/)                       |
+| **VietStock**          | vietstock.vn      | ✅ [news-sitemap](https://vietstock.vn/news-sitemap.xml)                                       | ✅ [RSS](https://vietstock.vn/rss/)                           |
+| **VnEconomy**          | vneconomy.vn      | ✅ [latest-news](https://vneconomy.vn/latest-news.xml)                                         | ✅                                                            |
+| **Báo Đầu Tư**         | baodautu.vn       | ✅ [sitemap](https://baodautu.vn/sitemap.xml)                                                  | ✅                                                            |
+| **PLO**                | plo.vn            | ✅ [monthly](https://plo.vn/sitemaps/news-{year}-{month}.xml)                                  | ✅                                                            |
+| **Báo Mới**            | baomoi.com        | ✅ [sitemap](https://baomoi.com/sitemap.xml)                                                   | ✅                                                            |
+| **Thế Giới Tài Chính** | thesaigontimes.vn | ✅ [incremental](https://thesaigontimes.vn/sitemaps/)                                          | ✅                                                            |
+| **Nhịp Cầu Đầu Tư**    | nhipcaudautu.vn   | ✅ [sitemap](https://nhipcaudautu.vn/sitemap.xml)                                              | ✅                                                            |
+| **Công Thương**        | congthuong.vn     | ✅ [sitemap](https://congthuong.vn/sitemap.xml)                                                | ✅                                                            |
 
 ---
 
@@ -213,23 +213,23 @@ https://plo.vn/sitemaps/news-2024-11.xml  (Tháng 11/2024)
 **Cách thêm vào vnstock_news:**
 
 ```python
-from vnstock_news import Crawler, SITES_CONFIG
+from vnstock_news import Crawler
 
-# Nếu chưa có trong config, thêm thủ công
 custom_plo_config = {
     "name": "Báo PLO",
     "domain": "plo.vn",
     "sitemap": {
-        "pattern_type": "monthly",  # ← Key: "monthly"
+        "pattern_type": "monthly",
         "base_url": "https://plo.vn/sitemaps/news",
-        "format": "{base_url}-{year}-{month:02d}.xml"
+        "format": "-{year}-{month:02d}",  # Tạo: news-2025-01.xml
+        "extension": "xml"
     }
 }
 
 crawler = Crawler(custom_config=custom_plo_config)
 
 # Crawler sẽ tự động tạo URL cho tháng hiện tại
-articles = crawler.get_articles_from_sitemap(limit=100)
+articles = crawler.get_articles(limit=100)
 ```
 
 ---
@@ -248,19 +248,19 @@ https://thesaigontimes.vn/sitemaps/news-3.xml   (Ngày 3)
 **Cách cấu hình:**
 
 ```python
+from vnstock_news import Crawler
+
 custom_ktsg_config = {
     "name": "Thế Giới Tài Chính",
     "domain": "thesaigontimes.vn",
     "sitemap": {
-        "pattern_type": "incremental",  # ← Key: "incremental"
-        "base_url": "https://thesaigontimes.vn/sitemaps/news",
-        "index_url": "https://thesaigontimes.vn/sitemaps/",
-        "format": "{base_url}-{index}.xml"
+        "pattern_type": "incremental",
+        "index_url": "https://thesaigontimes.vn/sitemaps/"
     }
 }
 
 crawler = Crawler(custom_config=custom_ktsg_config)
-articles = crawler.get_articles_from_sitemap(limit=100)
+articles = crawler.get_articles(limit=100)
 ```
 
 ---
@@ -328,13 +328,13 @@ custom_config = {
     "sitemap": {
         "pattern_type": "monthly",
         "base_url": "https://baoxyz.vn/sitemaps/news",
-        "format": "{base_url}-{year}-{month:02d}.xml"
-        # Format: 2025-01, 2025-02, v.v.
+        "format": "-{year}-{month:02d}",  # Sẽ tạo: news-2025-01.xml
+        "extension": "xml"
     }
 }
 
 crawler = Crawler(custom_config=custom_config)
-articles = crawler.get_articles_from_sitemap(limit=100)
+articles = crawler.get_articles(limit=100)
 ```
 
 ---
@@ -484,21 +484,18 @@ HTTP 429 Too Many Requests
 
 ```python
 from vnstock_news import Crawler
-from datetime import datetime
+import pandas as pd
 
 crawler = Crawler(site_name="cafef")
 
-# Lấy 200 bài từ 1-31/1/2025
-articles = crawler.get_articles_from_sitemap(
-    limit=200,
-    start_date=datetime(2025, 1, 1),
-    end_date=datetime(2025, 1, 31)
-)
+# Lấy 100 bài từ sitemap
+articles = crawler.get_articles(limit=100)
 
-print(f"✅ Lấy {len(articles)} bài từ tháng 1/2025")
-print(articles[['title', 'publish_time']].head())
+print(f"✅ Lấy {len(articles)} bài từ CafeF")
 
-articles.to_csv("cafef_january_2025.csv", index=False)
+# Nếu muốn convert sang DataFrame
+df = pd.DataFrame(articles)
+print(df[['url', 'lastmod']].head())
 ```
 
 ---
@@ -515,13 +512,19 @@ crawler = Crawler(site_name="tuoitre")
 rss_articles = crawler.get_articles_from_feed(limit_per_feed=30)
 
 # Lấy Sitemap (lịch sử)
-sitemap_articles = crawler.get_articles_from_sitemap(limit=100)
+sitemap_articles = crawler.get_articles(limit=100)
+
+# Convert to DataFrame
+rss_df = pd.DataFrame(rss_articles) if rss_articles else pd.DataFrame()
+sitemap_df = pd.DataFrame(sitemap_articles) if sitemap_articles else pd.DataFrame()
 
 # Gộp, loại bỏ duplicate
-all_articles = pd.concat([rss_articles, sitemap_articles], ignore_index=True)
-all_articles = all_articles.drop_duplicates(subset=['url'])
-
-print(f"✅ Tổng {len(all_articles)} bài (RSS + Sitemap)")
+if not rss_df.empty and not sitemap_df.empty:
+    all_articles = pd.concat([rss_df, sitemap_df], ignore_index=True)
+    all_articles = all_articles.drop_duplicates(subset=['url'])
+    print(f"✅ Tổng {len(all_articles)} bài (RSS + Sitemap)")
+else:
+    print("❌ Không có dữ liệu từ RSS hoặc Sitemap")
 ```
 
 ---
@@ -577,10 +580,10 @@ for sitemap in sitemaps:
 
 ## Tổng Kết
 
-| Cần | Cách Tìm |
-|-----|---------|
-| Tìm Sitemap | Kiểm tra robots.txt, hoặc thử `/sitemap.xml` |
-| Tìm RSS | Xem source HTML, hoặc thử `/feed.rss` |
-| Báo chưa hỗ trợ | Thêm custom_config với sitemap_url hoặc RSS |
-| Dynamic sitemap | Dùng `pattern_type: "monthly"` hoặc `"incremental"` |
-| An toàn crawling | Tuân thủ robots.txt, thêm delay, rate limit |
+| Cần              | Cách Tìm                                            |
+| ---------------- | --------------------------------------------------- |
+| Tìm Sitemap      | Kiểm tra robots.txt, hoặc thử `/sitemap.xml`        |
+| Tìm RSS          | Xem source HTML, hoặc thử `/feed.rss`               |
+| Báo chưa hỗ trợ  | Thêm custom_config với sitemap_url hoặc RSS         |
+| Dynamic sitemap  | Dùng `pattern_type: "monthly"` hoặc `"incremental"` |
+| An toàn crawling | Tuân thủ robots.txt, thêm delay, rate limit         |

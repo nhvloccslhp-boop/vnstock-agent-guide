@@ -30,13 +30,20 @@ crawler = Crawler(custom_config=custom_config)
 
 ### Các Phương Thức
 
-#### `get_articles_from_feed(limit_per_feed=20, timeout=10)`
+#### `get_articles_from_feed(limit_per_feed=20)`
 
 Lấy tin từ RSS feed.
 
 ```python
-articles = crawler.get_articles_from_feed(limit_per_feed=10)
-print(articles.head())
+import pandas as pd
+from vnstock_news import Crawler
+
+crawler = Crawler(site_name="vnexpress")  # Chọn báo có RSS
+articles = crawler.get_articles_from_feed(limit_per_feed=10)  # Returns List[Dict]
+
+# Convert to DataFrame nếu cần
+df = pd.DataFrame(articles)
+print(df.head())
 ```
 
 **Output:**
@@ -48,31 +55,30 @@ print(articles.head())
 
 **Parameters:**
 - `limit_per_feed` (int): Lấy tối đa bao nhiêu bài từ mỗi RSS feed
-- `timeout` (int): Timeout cho mỗi request (giây)
 
-**Returns:** `pd.DataFrame` với cột `[url, title, short_description, publish_time, author]`
+**Returns:** `List[Dict[str, Any]]` với các key `[url, title, short_description, publish_time, author]`
 
 ---
 
-#### `get_articles_from_sitemap(limit=100, start_date=None, end_date=None, timeout=10)`
+#### `get_articles(sitemap_url=None, limit=10, limit_per_feed=None)`
 
-Lấy tin từ XML sitemap.
+Lấy tin từ RSS hoặc Sitemap (smart fallback).
 
 ```python
-from datetime import datetime, timedelta
+import pandas as pd
 
-# Lấy 100 bài gần đây nhất
-articles = crawler.get_articles_from_sitemap(limit=100)
+# Lấy 100 bài (dùng RSS trước, nếu không có thì dùng sitemap)
+articles = crawler.get_articles(limit=100)  # Returns List[Dict]
 
-# Lấy bài từ tháng 1/2025
-articles = crawler.get_articles_from_sitemap(
-    limit=200,
-    start_date=datetime(2025, 1, 1),
-    end_date=datetime(2025, 1, 31)
+# Hoặc chỉ định sitemap URL
+articles = crawler.get_articles(
+    sitemap_url="https://cafef.vn/latest-news-sitemap.xml",
+    limit=200
 )
 
 print(f"Lấy được {len(articles)} bài")
-print(articles[['title', 'publish_time']].head())
+df = pd.DataFrame(articles)
+print(df[['title', 'publish_time']].head())
 ```
 
 **Output:**
@@ -83,128 +89,30 @@ print(articles[['title', 'publish_time']].head())
 ```
 
 **Parameters:**
-- `limit` (int): Tối đa bao nhiêu URL từ sitemap
-- `start_date` (datetime): Lọc bài từ ngày này trở đi
-- `end_date` (datetime): Lọc bài đến ngày này
-- `timeout` (int): Timeout
+- `sitemap_url` (str or list, optional): Custom sitemap URL(s). Nếu không cung cấp, dùng RSS trước.
+- `limit` (int): Tối đa bao nhiêu bài
+- `limit_per_feed` (int, optional): Giới hạn mỗi feed khi có nhiều feeds
 
-**Returns:** `pd.DataFrame`
-
----
-
-## 2. RSS - RSS Feed Parser
-
-Parser chuyên biệt cho RSS feed, trả về danh sách feed URLs với metadata.
-
-### Khởi Tạo
-
-```python
-from vnstock_news import RSS
-
-rss = RSS(site_name="vnexpress")
-# hoặc
-rss = RSS(feed_urls=["https://vnexpress.net/rss/tin-moi-nhat.rss"])
-```
-
-### Phương Thức
-
-#### `get_all_articles(limit_per_feed=20)`
-
-```python
-articles = rss.get_all_articles(limit_per_feed=15)
-
-print(articles.shape)  # (N, 5)
-print(articles.columns)  # url, title, short_description, publish_time, author
-```
+**Returns:** `List[Dict[str, Any]]`
 
 ---
 
-## 3. Sitemap - XML Sitemap Parser
+## 2. Lưu Ý về RSS và Sitemap Classes
 
-Parser chuyên biệt cho XML sitemap.
-
-### Khởi Tạo
-
-```python
-from vnstock_news import Sitemap
-
-sitemap = Sitemap(sitemap_url="https://cafef.vn/latest-news-sitemap.xml")
-```
-
-### Phương Thức
-
-#### `get_urls(limit=None, start_date=None, end_date=None)`
-
-Lấy URLs từ sitemap với bộ lọc ngày.
-
-```python
-from datetime import datetime
-
-# Lấy 100 URL đầu tiên
-urls = sitemap.get_urls(limit=100)
-
-# Lấy URLs từ 1-31/1/2025
-urls = sitemap.get_urls(
-    start_date=datetime(2025, 1, 1),
-    end_date=datetime(2025, 1, 31)
-)
-
-print(f"Lấy được {len(urls)} URLs")
-for url in urls[:5]:
-    print(url)
-```
-
-**Output:**
-```
-https://cafef.vn/investment/stock/top-10-co-phieu-tang-gia-tuan-qua...
-https://cafef.vn/investment/stock/nha-dau-tu-nhat-phuc-tiet-lo...
-```
+> ⚠️ **Lưu Ý:** Các class `RSS`, `Sitemap`, và `News` là internal modules và **không được export** trong `vnstock_news.__init__`. 
+> 
+> **Khuyến nghị:** Sử dụng `Crawler` class thay vì truy cập trực tiếp các internal modules.
+>
+> Nếu bạn thực sự cần, bạn có thể import trực tiếp:
+> ```python
+> from vnstock_news.core.rss import RSS
+> from vnstock_news.core.sitemap import Sitemap
+> from vnstock_news.core.news import News
+> ```
 
 ---
 
-## 4. News - Article Content Parser
-
-Parse nội dung chi tiết của một bài viết.
-
-### Khởi Tạo
-
-```python
-from vnstock_news import News
-
-news_parser = News(site_name="cafef")
-# hoặc dùng custom config
-news_parser = News(config={
-    "selectors": {
-        "title": "h1.title",
-        "content": "div.article-content",
-        "author": "span.author-name"
-    }
-})
-```
-
-### Phương Thức
-
-#### `parse(url)`
-
-Parse nội dung từ một URL.
-
-```python
-url = "https://cafef.vn/investment/stock/tin-tuc..."
-article = news_parser.parse(url)
-
-print(article)
-# {
-#   'url': 'https://cafef.vn/...',
-#   'title': 'Chứng khoán tăng 1%',
-#   'content': 'Thị trường chứng khoán hôm nay...',
-#   'publish_time': datetime(2025, 1, 15),
-#   'author': 'Nguyễn Văn A'
-# }
-```
-
----
-
-## 5. BatchCrawler - Batch Processing (Đồng Bộ)
+## 3. BatchCrawler - Batch Processing (Đồng Bộ)
 
 Lấy hàng loạt bài từ một trang báo, với hỗ trợ resume nếu bị lỗi.
 
@@ -216,8 +124,7 @@ from vnstock_news import BatchCrawler
 crawler = BatchCrawler(
     site_name="cafef",
     request_delay=1.5,      # Delay 1.5s giữa mỗi request
-    timeout=30,             # Timeout 30s
-    output_dir="./data",    # Lưu kết quả vào thư mục này
+    output_path="./data",   # Lưu kết quả vào thư mục này
     debug=False             # Tắt debug output
 )
 ```
@@ -272,7 +179,7 @@ for i, batch in enumerate(batches):
 
 ---
 
-## 6. AsyncBatchCrawler - Batch Processing (Bất Đồng Bộ)
+## 4. AsyncBatchCrawler - Batch Processing (Bất Đồng Bộ)
 
 Lấy hàng loạt bài **nhanh hơn gấp 5-10 lần** bằng concurrent requests.
 
@@ -283,28 +190,27 @@ from vnstock_news import AsyncBatchCrawler
 
 crawler = AsyncBatchCrawler(
     site_name="cafef",
-    max_concurrency=5,      # Tối đa 5 requests cùng lúc
-    request_delay=0.5,      # Delay giữa requests (để tránh block)
-    timeout=30
+    max_concurrency=5       # Tối đa 5 requests cùng lúc
 )
 ```
 
 ### Phương Thức
 
-#### `fetch_articles_async(sources=None, top_n=100, site_name=None)`
+#### `fetch_articles_async(sources, top_n=10, top_n_per_feed=None, within=None)`
 
 ```python
 import asyncio
+from vnstock_news import AsyncBatchCrawler
 
 async def main():
     crawler = AsyncBatchCrawler(site_name="cafef")
     
     articles = await crawler.fetch_articles_async(
-        top_n=200,  # Lấy 200 bài
-        site_name="cafef"
+        sources=["https://cafef.vn/latest-news-sitemap.xml"],  # Bắt buộc: sitemap URL
+        top_n=100  # Lấy 100 bài
     )
     
-    print(f"✅ Lấy được {len(articles)} bài trong {articles['publish_time'].max() - articles['publish_time'].min()}")
+    print(f"✅ Lấy được {len(articles)} bài")
     return articles
 
 # Chạy
@@ -346,7 +252,7 @@ articles = asyncio.run(main())
 
 ---
 
-## 7. EnhancedNewsCrawler - Advanced API
+## 5. EnhancedNewsCrawler - Advanced API
 
 API cao cấp với đầy đủ tính năng: caching, validation, content cleaning.
 
@@ -358,34 +264,30 @@ from vnstock_news import EnhancedNewsCrawler
 crawler = EnhancedNewsCrawler(
     cache_enabled=True,           # Bật caching
     cache_ttl=7200,               # Cache 2 giờ
-    cache_dir="./cache",          # Thư mục cache
-    max_retries=3,                # Retry 3 lần nếu lỗi
-    timeout=30,
-    user_agent=None               # Tự động rotate user-agent
+    max_concurrency=5,            # Tối đa 5 requests cùng lúc
+    debug=False                   # Tắt debug output
 )
 ```
 
 ### Phương Thức
 
-#### `fetch_articles_async(sources, site_name, max_articles=100, time_frame="24h", clean_content=True)`
+#### `fetch_articles_async(sources, top_n=10, top_n_per_feed=None, within=None, sort_order='desc', save_to_file=False)`
 
-Lấy bài với đầy đủ tính năng.
+Lấy bài với đầy đủ tính năng (caching, validation, cleaning).
 
 ```python
 import asyncio
+from vnstock_news import EnhancedNewsCrawler
 
 async def main():
-    crawler = EnhancedNewsCrawler(cache_enabled=True)
+    crawler = EnhancedNewsCrawler(cache_enabled=True, cache_ttl=7200)
     
     articles = await crawler.fetch_articles_async(
         sources=["https://cafef.vn/latest-news-sitemap.xml"],
-        site_name="cafef",
-        max_articles=100,
-        time_frame="7d",           # Lấy bài từ 7 ngày gần đây
-        clean_content=True         # Xóa HTML, chuẩn hóa nội dung
+        top_n=100                  # Lấy 100 bài
     )
     
-    print(f"✅ Lấy {len(articles)} bài từ cache/web")
+    print(f"✅ Lấy {len(articles)} bài (with caching & validation)")
     return articles
 
 articles = asyncio.run(main())
@@ -411,15 +313,15 @@ articles = asyncio.run(main())
 
 ## So Sánh Các Crawler
 
-| Tiêu Chí | Crawler | RSS | Sitemap | BatchCrawler | AsyncBatchCrawler | Enhanced |
-|---------|---------|-----|---------|--------------|-------------------|----------|
-| **Tốc độ** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Dữ liệu lịch sử** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Đơn giản** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Caching** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Content Cleaning** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Async** | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| **Resume Support** | ❌ | ❌ | ❌ | ✅ | ⚠️ | ✅ |
+| Tiêu Chí             | Crawler | RSS   | Sitemap | BatchCrawler | AsyncBatchCrawler | Enhanced |
+| -------------------- | ------- | ----- | ------- | ------------ | ----------------- | -------- |
+| **Tốc độ**           | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ | ⭐⭐      | ⭐⭐           | ⭐⭐⭐⭐⭐             | ⭐⭐⭐⭐     |
+| **Dữ liệu lịch sử**  | ❌       | ❌     | ✅       | ✅            | ✅                 | ✅        |
+| **Đơn giản**         | ✅       | ✅     | ✅       | ✅            | ❌                 | ❌        |
+| **Caching**          | ❌       | ❌     | ❌       | ❌            | ❌                 | ✅        |
+| **Content Cleaning** | ❌       | ❌     | ❌       | ❌            | ❌                 | ✅        |
+| **Async**            | ❌       | ❌     | ❌       | ❌            | ✅                 | ✅        |
+| **Resume Support**   | ❌       | ❌     | ❌       | ✅            | ⚠️                 | ✅        |
 
 ---
 
@@ -429,12 +331,14 @@ articles = asyncio.run(main())
 
 ```python
 from vnstock_news import Crawler
+import pandas as pd
 
 crawler = Crawler(site_name="vnexpress")
-articles = crawler.get_articles_from_feed(limit_per_feed=20)
+articles = crawler.get_articles_from_feed(limit_per_feed=20)  # List[Dict]
 
 print(f"✅ Lấy {len(articles)} bài")
-print(articles[['title', 'publish_time']].head())
+df = pd.DataFrame(articles)
+print(df[['title', 'publish_time']].head())
 ```
 
 ### Ví Dụ 2: Lấy 500 Bài Lịch Sử Từ CafeF
@@ -471,10 +375,13 @@ async def fetch_all_sites():
             max_concurrency=5
         )
         
+        config = SITES_CONFIG[site_name]
+        sitemap_url = config.get('sitemap_url')
+        
         print(f"⏳ Đang lấy từ {site_name}...")
         articles = await crawler.fetch_articles_async(
-            site_name=site_name,
-            max_articles=100
+            sources=[sitemap_url],
+            top_n=100  # Lấy 100 bài
         )
         articles['source'] = site_name
         all_articles.append(articles)
@@ -500,16 +407,14 @@ from vnstock_news import EnhancedNewsCrawler
 import asyncio
 
 crawler = EnhancedNewsCrawler(
-    max_retries=3,  # Retry 3 lần
-    timeout=30
+    cache_enabled=True  # Tự động cache để tránh retry không cần thiết
 )
 
 async def safe_fetch():
     try:
         articles = await crawler.fetch_articles_async(
             sources=["https://cafef.vn/latest-news-sitemap.xml"],
-            site_name="cafef",
-            max_articles=100
+            top_n=100
         )
         return articles
     except Exception as e:
@@ -527,14 +432,13 @@ import time
 
 crawler = BatchCrawler(
     site_name="cafef",
-    request_delay=2.0,  # Delay 2 giây
-    timeout=60
+    request_delay=2.0  # Delay 2 giây giữa mỗi request
 )
 
 try:
     articles = crawler.fetch_articles(limit=1000)
 except Exception as e:
-    if "429" in str(e):
+    if "429" in str(e) or "Too Many Requests" in str(e):
         print("⚠️ Bị rate limit, đợi 1 giờ...")
         time.sleep(3600)
         # Retry

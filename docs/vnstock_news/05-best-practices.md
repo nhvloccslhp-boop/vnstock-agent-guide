@@ -8,12 +8,12 @@ Tài liệu này tổng hợp các kỹ thuật tốt nhất để sử dụng v
 
 ### Chọn Phương Thức Phù Hợp
 
-| Mục Tiêu | Phương Thức | Ưu Điểm | Nhược Điểm |
-|----------|-------------|---------|-----------|
-| Cập nhật hàng ngày | RSS | Nhanh, cập nhật tự động | Chỉ bài mới |
-| Xây dựng database | Sitemap batch | Lấy lịch sử, đầy đủ | Chậm, phức tạp |
-| Real-time monitoring | Async batch | Nhanh, concurrent | Phức tạp |
-| Sản xuất hàng ngày | Scheduler + RSS | Tự động, tin tươi | Cần thiết lập |
+| Mục Tiêu             | Phương Thức     | Ưu Điểm                 | Nhược Điểm     |
+| -------------------- | --------------- | ----------------------- | -------------- |
+| Cập nhật hàng ngày   | RSS             | Nhanh, cập nhật tự động | Chỉ bài mới    |
+| Xây dựng database    | Sitemap batch   | Lấy lịch sử, đầy đủ     | Chậm, phức tạp |
+| Real-time monitoring | Async batch     | Nhanh, concurrent       | Phức tạp       |
+| Sản xuất hàng ngày   | Scheduler + RSS | Tự động, tin tươi       | Cần thiết lập  |
 
 ---
 
@@ -100,20 +100,22 @@ async def build_database():
         
         crawler = AsyncBatchCrawler(
             site_name=site_name,
-            max_concurrency=5,
-            request_delay=1.0
+            max_concurrency=5
         )
         
         try:
             articles = await crawler.fetch_articles_async(
-                site_name=site_name,
-                max_articles=1000  # Lấy tối đa 1000 bài
+                sources=[site_name],
+                top_n=1000  # Lấy tối đa 1000 bài
             )
+            
+            # articles is already a DataFrame
             articles['source'] = site_name
             all_articles.append(articles)
             
             print(f"✅ {site_name}: {len(articles)} articles")
-            print(f"   Date range: {articles['publish_time'].min()} to {articles['publish_time'].max()}")
+            if 'publish_time' in articles.columns:
+                print(f"   Date range: {articles['publish_time'].min()} to {articles['publish_time'].max()}")
             
         except Exception as e:
             print(f"❌ {site_name}: {e}")
@@ -142,23 +144,22 @@ asyncio.run(build_database())
 ### Chiến Lược 1: Thêm Delay
 
 ```python
-from vnstock_news import BatchCrawler
+from vnstock_news import Crawler
 import time
 
-crawler = BatchCrawler(
-    site_name="cafef",
-    request_delay=2.0,  # Delay 2 giây giữa mỗi request
-    timeout=30
-)
+crawler = Crawler(site_name="cafef")
 
-articles = crawler.fetch_articles(limit=500)
+articles = crawler.get_articles_from_feed(limit_per_feed=20)
+
+# Nếu fetch từ sitemap, add delay giữa các request
+time.sleep(1.0)  # Delay 1 giây
 ```
 
 **Hướng dẫn:**
-- `request_delay=0.5`: Nhanh nhất, rủi ro block
-- `request_delay=1.0`: Cân bằng
-- `request_delay=2.0`: An toàn, chập nhận chậm
-- `request_delay=5.0`: Rất an toàn, rất chậm
+- Không delay (default): Nhanh nhất, rủi ro block
+- `time.sleep(0.5)`: Cân bằng
+- `time.sleep(1.0)`: An toàn, chập nhận chậm
+- `time.sleep(5.0)`: Rất an toàn, rất chậm
 
 ---
 
@@ -167,19 +168,20 @@ articles = crawler.fetch_articles(limit=500)
 ```python
 import asyncio
 from vnstock_news import AsyncBatchCrawler
+import pandas as pd
 
 async def safe_fetch():
     crawler = AsyncBatchCrawler(
         site_name="cafef",
-        max_concurrency=2,    # Chỉ 2 requests cùng lúc
-        request_delay=1.0
+        max_concurrency=2    # Chỉ 2 requests cùng lúc
     )
     
     articles = await crawler.fetch_articles_async(
-        site_name="cafef",
-        max_articles=500
+        sources=["cafef"],
+        top_n=500
     )
     
+    # articles is already a DataFrame
     return articles
 
 articles = asyncio.run(safe_fetch())
@@ -190,25 +192,21 @@ articles = asyncio.run(safe_fetch())
 ### Chiến Lược 3: Xử Lý Rate Limit
 
 ```python
-from vnstock_news import BatchCrawler
+from vnstock_news import Crawler
 from requests.exceptions import HTTPError
 import time
 
-def fetch_with_retry(site_name, limit):
+def fetch_with_retry(site_name, limit=100):
     """Fetch với xử lý rate limit"""
     
-    crawler = BatchCrawler(
-        site_name=site_name,
-        request_delay=1.5,
-        timeout=30
-    )
+    crawler = Crawler(site_name=site_name)
     
     max_retries = 3
     retry_count = 0
     
     while retry_count < max_retries:
         try:
-            articles = crawler.fetch_articles(limit=limit)
+            articles = crawler.get_articles_from_feed(limit_per_feed=limit)
             return articles
             
         except HTTPError as e:
@@ -223,7 +221,7 @@ def fetch_with_retry(site_name, limit):
     raise Exception(f"Failed after {max_retries} retries")
 
 # Sử dụng
-articles = fetch_with_retry("cafef", limit=500)
+articles = fetch_with_retry("cafef", limit=20)
 ```
 
 ---
@@ -278,31 +276,32 @@ rules = check_robots_txt("https://cafef.vn")
 ### Bật Caching
 
 ```python
-from vnstock_news import EnhancedNewsCrawler
+from vnstock_news.api.enhanced import EnhancedNewsCrawler
 import asyncio
 
 async def fetch_with_cache():
     crawler = EnhancedNewsCrawler(
         cache_enabled=True,
-        cache_ttl=7200,           # Cache 2 giờ
-        cache_dir="./news_cache"  # Thư mục cache
+        cache_ttl=7200           # Cache 2 giờ
     )
     
     # Lần đầu: tải từ web, lưu cache
-    articles1 = await crawler.fetch_articles_async(
+    articles_list1 = await crawler.fetch_articles_async(
         sources=["https://cafef.vn/latest-news-sitemap.xml"],
-        site_name="cafef",
-        max_articles=100
+        top_n=100
     )
+    
+    # Convert to DataFrame
+    import pandas as pd
+    articles = pd.DataFrame(articles_list1)
     
     # Lần thứ 2 (trong 2 giờ): tải từ cache, nhanh hơn
-    articles2 = await crawler.fetch_articles_async(
+    articles_list2 = await crawler.fetch_articles_async(
         sources=["https://cafef.vn/latest-news-sitemap.xml"],
-        site_name="cafef",
-        max_articles=100
+        top_n=100
     )
     
-    return articles2
+    return articles
 
 articles = asyncio.run(fetch_with_cache())
 ```
@@ -408,9 +407,8 @@ def fetch_with_resume(site_name, limit=1000):
         print(f"📌 Resuming from index {start_index}")
     
     # Tạo crawler
-    crawler = BatchCrawler(
-        site_name=site_name,
-        request_delay=1.5
+    crawler = Crawler(
+        site_name=site_name
     )
     
     all_articles = []
@@ -421,8 +419,9 @@ def fetch_with_resume(site_name, limit=1000):
         all_articles = [pd.read_csv(output_file)]
     
     try:
-        # Fetch từ start_index
-        new_articles = crawler.fetch_articles(limit=limit)
+        # Fetch từ RSS/Sitemap
+        new_articles_list = crawler.get_articles_from_feed(limit_per_feed=limit)
+        new_articles = pd.DataFrame(new_articles_list)
         all_articles.append(new_articles)
         
         # Gộp và lưu
@@ -606,15 +605,15 @@ class NewsAggregatorService:
                 
                 crawler = AsyncBatchCrawler(
                     site_name=site_name,
-                    max_concurrency=3,
-                    request_delay=1.0
+                    max_concurrency=3
                 )
                 
                 articles = await crawler.fetch_articles_async(
-                    site_name=site_name,
-                    max_articles=100
+                    sources=[site_name],
+                    top_n=100
                 )
                 
+                # articles is already a DataFrame
                 articles['source'] = site_name
                 all_articles.append(articles)
                 
