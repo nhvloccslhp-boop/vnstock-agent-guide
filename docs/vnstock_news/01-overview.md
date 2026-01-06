@@ -86,20 +86,20 @@ vnstock_news/
 
 ## Các Trang Báo Được Hỗ Trợ
 
-| Tên Báo | Domain | RSS | Sitemap | Ghi Chú |
-|---------|--------|-----|---------|---------|
-| **VnExpress** | vnexpress.net | ✅ | ✅ | RSS cập nhật nhanh |
-| **Tuổi Trẻ** | tuoitre.vn | ✅ | ✅ | Sitemap tháng/năm |
-| **CafeF** | cafef.vn | ✅ | ✅ | Cả hai |
-| **CafeBiz** | cafebiz.vn | ✅ | ✅ | Cả hai |
-| **VietStock** | vietstock.vn | ✅ | ✅ | Cả hai |
-| **VnEconomy** | vneconomy.vn | ✅ | ✅ | Sitemap XML |
-| **Báo Đầu Tư** | baodautu.vn | ✅ | ✅ | Sitemap XML |
-| **PLO** | plo.vn | ✅ | ✅ | Sitemap dynamic (tháng/năm) |
-| **Báo Mới** | baomoi.com | ✅ | ✅ | Sitemap XML |
-| **Thế Giới Tài Chính** | thesaigontimes.vn | ✅ | ✅ | Incremental sitemap |
-| **Nhịp Cầu Đầu Tư** | nhipcaudautu.vn | ✅ | ✅ | Sitemap XML |
-| **Công Thương** | congthuong.vn | ✅ | ✅ | Sitemap XML |
+| Tên Báo                | Domain            | RSS | Sitemap | Ghi Chú                     |
+| ---------------------- | ----------------- | --- | ------- | --------------------------- |
+| **VnExpress**          | vnexpress.net     | ✅   | ✅       | RSS cập nhật nhanh          |
+| **Tuổi Trẻ**           | tuoitre.vn        | ✅   | ✅       | Sitemap tháng/năm           |
+| **CafeF**              | cafef.vn          | ✅   | ✅       | Cả hai                      |
+| **CafeBiz**            | cafebiz.vn        | ✅   | ✅       | Cả hai                      |
+| **VietStock**          | vietstock.vn      | ✅   | ✅       | Cả hai                      |
+| **VnEconomy**          | vneconomy.vn      | ✅   | ✅       | Sitemap XML                 |
+| **Báo Đầu Tư**         | baodautu.vn       | ✅   | ✅       | Sitemap XML                 |
+| **PLO**                | plo.vn            | ✅   | ✅       | Sitemap dynamic (tháng/năm) |
+| **Báo Mới**            | baomoi.com        | ✅   | ✅       | Sitemap XML                 |
+| **Thế Giới Tài Chính** | thesaigontimes.vn | ✅   | ✅       | Incremental sitemap         |
+| **Nhịp Cầu Đầu Tư**    | nhipcaudautu.vn   | ✅   | ✅       | Sitemap XML                 |
+| **Công Thương**        | congthuong.vn     | ✅   | ✅       | Sitemap XML                 |
 
 **Tất cả các báo đều hỗ trợ cả RSS và Sitemap** vì đây là tiêu chuẩn web. vnstock_news cung cấp cấu hình sẵn cho 12+ báo phổ biến nhưng có thể tùy biến để làm việc với bất kỳ website/báo nào có nguồn RSS/sitemap.
 
@@ -111,10 +111,14 @@ vnstock_news/
 
 ```python
 from vnstock_news import Crawler
+import pandas as pd
 
 crawler = Crawler(site_name="vnexpress")
-articles = crawler.get_articles_from_feed(limit_per_feed=20)
-# Output: DataFrame với các bài từ RSS
+articles = crawler.get_articles_from_feed(limit_per_feed=20)  # Returns List[Dict]
+
+# Convert to DataFrame nếu cần
+df = pd.DataFrame(articles)
+print(df.head())
 ```
 
 **Ưu điểm**: Nhanh, dễ, cập nhật liên tục  
@@ -124,10 +128,15 @@ articles = crawler.get_articles_from_feed(limit_per_feed=20)
 
 ```python
 from vnstock_news import Crawler
+import pandas as pd
 
 crawler = Crawler(site_name="cafef")
-articles = crawler.get_articles_from_sitemap(limit=100)
-# Output: DataFrame với 100 bài từ sitemap
+# get_articles() will use sitemap as fallback if RSS not available
+articles = crawler.get_articles(limit=100)  # Returns List[Dict]
+
+# Convert to DataFrame
+df = pd.DataFrame(articles)
+print(df.head())
 ```
 
 **Ưu điểm**: Lấy được lịch sử nhiều tháng/năm  
@@ -192,20 +201,36 @@ articles = await crawler.fetch_articles_async(
 
 ## Output Data Structure
 
-Tất cả phương thức đều trả về DataFrame với các cột sau:
+Các phương thức trả về **List[Dict]** hoặc **DataFrame** tùy theo crawler:
 
-| Cột | Kiểu | Mô Tả |
-|-----|------|-------|
-| `url` | string | URL bài viết |
-| `title` | string | Tiêu đề |
-| `short_description` | string | Tóm tắt ngắn/Sapo |
-| `content` | string | Nội dung bài viết |
-| `publish_time` | datetime | Thời gian đăng |
-| `author` | string | Tác giả |
-| `category` | string | Chuyên mục |
-| `image_url` | string | URL hình ảnh (nếu có) |
+- `Crawler.get_articles_from_feed()` → **List[Dict]**
+- `Crawler.get_articles()` → **List[Dict]**
+- `BatchCrawler.fetch_articles()` → **DataFrame**
+- `AsyncBatchCrawler.fetch_articles_async()` → **DataFrame**
+
+Các cột dữ liệu:
+
+| Cột                 | Kiểu     | Mô Tả                 |
+| ------------------- | -------- | --------------------- |
+| `url`               | string   | URL bài viết          |
+| `title`             | string   | Tiêu đề               |
+| `short_description` | string   | Tóm tắt ngắn/Sapo     |
+| `content`           | string   | Nội dung bài viết     |
+| `publish_time`      | datetime | Thời gian đăng        |
+| `author`            | string   | Tác giả               |
+| `category`          | string   | Chuyên mục            |
+| `image_url`         | string   | URL hình ảnh (nếu có) |
 
 ### Ví dụ Output:
+
+```python
+# Từ List[Dict]
+articles = [{'url': 'https://cafef.vn/...', 'title': 'Thị trường chứng khoán...', ...}, ...]
+
+# Convert to DataFrame
+df = pd.DataFrame(articles)
+print(df.head())
+```
 
 ```
               url                   title  short_description  publish_time
@@ -395,13 +420,13 @@ print(f"✅ Tổng cộng lấy được {len(articles)} bài")
 
 ## Các Lỗi Thường Gặp
 
-| Lỗi | Nguyên Nhân | Giải Pháp |
-|-----|-----------|---------|
-| `ConnectionError` | Mất kết nối internet | Kiểm tra WiFi, thử lại |
-| `HTTPError 429` | Quá nhiều request | Tăng `request_delay`, giảm `max_concurrency` |
-| `HTTPError 403` | Bị block IP | Đợi vài giờ, dùng VPN |
-| `Timeout Error` | Server chậm | Tăng timeout, thử lại |
-| `Parsing Error` | Cấu trúc trang đã thay đổi | Báo lỗi tại GitHub, dùng custom_config |
+| Lỗi               | Nguyên Nhân                | Giải Pháp                                    |
+| ----------------- | -------------------------- | -------------------------------------------- |
+| `ConnectionError` | Mất kết nối internet       | Kiểm tra WiFi, thử lại                       |
+| `HTTPError 429`   | Quá nhiều request          | Tăng `request_delay`, giảm `max_concurrency` |
+| `HTTPError 403`   | Bị block IP                | Đợi vài giờ, dùng VPN                        |
+| `Timeout Error`   | Server chậm                | Tăng timeout, thử lại                        |
+| `Parsing Error`   | Cấu trúc trang đã thay đổi | Báo lỗi tại GitHub, dùng custom_config       |
 
 ---
 

@@ -1,549 +1,260 @@
 # 04. Phân Tích Xu Hướng & Keyword
 
-Tài liệu này hướng dẫn sử dụng module phân tích xu hướng để tìm ra các chủ đề, keyword phổ biến từ tin tức.
+> ⚠️ **LƯU Ý QUAN TRỌNG:** TrendingAnalyzer hiện **KHÔNG được export** trong package chính và API thực tế **KHÁC** với tài liệu này. 
+> 
+> Tài liệu này chỉ mang tính **THAM KHẢO** cho tính năng sẽ có trong tương lai hoặc bạn cần tự implement dựa trên các công cụ phân tích text khác.
 
 ---
 
-## 1. TrendingAnalyzer - Khái Niệm
+## 1. TrendingAnalyzer - Khái Niệm & API Thực Tế
 
 ### TrendingAnalyzer Là Gì?
 
-`TrendingAnalyzer` là công cụ phân tích dữ liệu tin tức để tìm ra:
+`TrendingAnalyzer` là công cụ nội bộ để phân tích xu hướng tin tức dựa trên n-grams.
 
-1. **Từ khóa phổ biến** (keywords) - Từ/cụm từ xuất hiện nhiều
-2. **Chủ đề xu hướng** (trending topics) - Các chủ đề được bàn luận
-3. **Độ phổ biến của từ** - Tần suất từ xuất hiện
+### ⚠️ API Thực Tế (Khác với tài liệu cũ)
 
-### Hoạt Động
-
-```
-Danh sách tin tức (DataFrame)
-    ↓
-Lấy nội dung từ các bài
-    ↓
-Chuẩn hóa text (thường dùng, xóa ký tự lạ)
-    ↓
-Tách từ (tokenization) & xóa từ không cần (stopwords)
-    ↓
-Đếm tần suất từ
-    ↓
-Xếp hạng & trả về kết quả
-```
-
----
-
-## 2. Khởi Tạo & Cơ Bản
-
-### Import
-
+**Import (không phải từ package chính):**
 ```python
-from vnstock_news import TrendingAnalyzer
-import pandas as pd
+# KHÔNG thể: from vnstock_news import TrendingAnalyzer
+# Phải dùng:
+from vnstock_news.trending.analyzer import TrendingAnalyzer
 ```
 
-### Khởi Tạo
-
+**Khởi tạo:**
 ```python
-# Cách 1: Mặc định (Vietnamese)
-analyzer = TrendingAnalyzer()
-
-# Cách 2: Custom language & stopwords
 analyzer = TrendingAnalyzer(
-    language='vietnamese',
-    min_frequency=2,          # Từ phải xuất hiện ít nhất 2 lần
-    max_keywords=20,          # Trả về tối đa 20 từ
-    min_word_length=2         # Từ phải có ít nhất 2 ký tự
+    stop_words_file="path/to/stopwords.txt",  # Optional
+    min_token_length=3                         # Minimum token length
 )
 ```
 
 **Parameters:**
-- `language` (str): Ngôn ngữ ('vietnamese', 'english', ...)
-- `min_frequency` (int): Từ phải xuất hiện ít nhất N lần để được coi là trending
-- `max_keywords` (int): Trả về tối đa bao nhiêu keyword
-- `min_word_length` (int): Từ phải dài tối thiểu bao nhiêu ký tự
+- `stop_words_file` (str, optional): Đường dẫn đến file stopwords
+- `min_token_length` (int): Độ dài tối thiểu của token (default: 3)
+
+### ⚠️ Các Method Thực Tế
+
+#### 1. `update_trends(text, ngram_range=None)`
+
+Cập nhật trending counter với text mới.
+
+```python
+analyzer = TrendingAnalyzer()
+
+# Cập nhật từ nhiều text
+texts = ["Chứng khoán tăng mạnh", "Thị trường chứng khoán hôm nay"]
+
+for text in texts:
+    analyzer.update_trends(text, ngram_range=[2, 3, 4, 5])
+```
+
+#### 2. `get_top_trends(top_n=20)`
+
+Lấy top trending phrases.
+
+```python
+# Sau khi update_trends
+top_trends = analyzer.get_top_trends(top_n=10)
+
+print(top_trends)
+# {'chứng khoán tăng': 5, 'thị trường chứng': 3, ...}
+```
+
+#### 3. `reset_trends()`
+
+Reset counter về 0.
+
+```python
+analyzer.reset_trends()
+```
 
 ---
 
-## 3. Phương Thức Chính
+## 2. Các Method KHÔNG Tồn Tại ❌
 
-### `extract_keywords(texts, top_n=20)`
+Những method này **KHÔNG có** trong mã nguồn thực tế:
 
-Trích xuất keywords từ danh sách text.
+- ❌ `extract_keywords(texts, top_n)` - KHÔNG TỒN TẠI
+- ❌ `extract_topics(articles_df, content_column, top_n)` - KHÔNG TỒN TẠI  
+- ❌ `get_trending(articles_df, time_window, top_n)` - KHÔNG TỒN TẠI
+- ❌ `analyze_sentiment(texts)` - KHÔNG TỒN TẠI
+
+---
+
+## 3. Workflow Thực Tế (Dùng API Có Sẵn)
+
+---
+
+## 3. Workflow Thực Tế (Dùng API Có Sẵn)
+
+### Ví Dụ: Phân Tích Trending Với API Thật
 
 ```python
-from vnstock_news import Crawler, TrendingAnalyzer
+from vnstock_news.trending.analyzer import TrendingAnalyzer
+from vnstock_news import Crawler
+import pandas as pd
 
 # Bước 1: Lấy tin tức
-crawler = Crawler(site_name="cafef")
+crawler = Crawler(site_name="vnexpress")
 articles = crawler.get_articles_from_feed(limit_per_feed=30)
 
 # Bước 2: Khởi tạo analyzer
-analyzer = TrendingAnalyzer()
+analyzer = TrendingAnalyzer(min_token_length=3)
 
-# Bước 3: Trích xuất keywords
-# Dùng 'content' (nội dung đầy đủ) hoặc 'title' (tiêu đề)
-keywords = analyzer.extract_keywords(
-    texts=articles['title'].tolist(),
-    top_n=20
-)
+# Bước 3: Cập nhật trends từng text
+for article in articles:
+    title = article.get('title', '')
+    description = article.get('description', '')
+    full_text = f"{title} {description}"
+    
+    # Update với n-grams 2,3,4,5
+    analyzer.update_trends(full_text, ngram_range=[2, 3, 4, 5])
 
-print(keywords)
+# Bước 4: Lấy top trending
+top_trends = analyzer.get_top_trends(top_n=20)
+
+print("🔥 Top Trending Phrases:")
+for i, (phrase, count) in enumerate(top_trends.items(), 1):
+    print(f"{i:2d}. {phrase:30s} - {count:3d} lần")
 ```
 
 **Output:**
 ```
-{'chứng khoán': 45, 'nhà đầu tư': 32, 'thị trường': 28, 'tăng': 25, ...}
+🔥 Top Trending Phrases:
+ 1. chứng khoán tăng             -  15 lần
+ 2. thị trường hôm                -  12 lần
+ 3. nhà đầu tư                    -  10 lần
+...
 ```
-
-**Parameters:**
-- `texts` (list): Danh sách text cần phân tích
-- `top_n` (int): Trả về top N keyword (default: 20)
-
-**Returns:** Dict with format `{keyword: frequency}`
 
 ---
 
-### `extract_topics(articles_df, content_column='content', top_n=20)`
+## 4. Giải Pháp Thay Thế Cho Keyword Extraction
 
-Trích xuất topics từ DataFrame tin tức.
+Vì API thực tế khác với tài liệu cũ, đây là cách tự implement keyword extraction:
+
+### Option 1: Dùng Collections.Counter
 
 ```python
-from vnstock_news import Crawler, TrendingAnalyzer
+from collections import Counter
+from vnstock_news import Crawler
+import re
+import pandas as pd
 
-crawler = Crawler(site_name="tuoitre")
+# Lấy tin tức
+crawler = Crawler(site_name="vnexpress")
 articles = crawler.get_articles_from_feed(limit_per_feed=50)
 
-analyzer = TrendingAnalyzer()
+# Extract tất cả từ
+all_words = []
+for article in articles:
+    title = article.get('title', '')
+    # Tách từ đơn giản
+    words = re.findall(r'\w+', title.lower())
+    # Lọc từ có ít nhất 3 ký tự
+    words = [w for w in words if len(w) >= 3]
+    all_words.extend(words)
 
-topics = analyzer.extract_topics(
-    articles_df=articles,
-    content_column='content',  # Cột chứa nội dung
-    top_n=15
-)
+# Đếm tần suất
+word_freq = Counter(all_words)
 
-print(f"🔥 Top topics:")
-for i, (topic, count) in enumerate(topics.items(), 1):
-    print(f"{i}. {topic}: {count}")
+# Top 20 keywords
+top_keywords = dict(word_freq.most_common(20))
+
+print("🔥 Top Keywords:")
+for word, count in top_keywords.items():
+    print(f"{word:20s}: {count}")
 ```
 
-**Output:**
-```
-🔥 Top topics:
-1. chứng khoán: 45
-2. nhà đầu tư: 32
-3. thị trường: 28
-4. tăng: 25
-5. công ty: 22
-```
-
----
-
-### `get_trending(articles_df, time_window='24h', top_n=20)`
-
-Lấy trending **trong khoảng thời gian cụ thể**.
+### Option 2: Dùng Pandas
 
 ```python
-from datetime import datetime
-from vnstock_news import Crawler, TrendingAnalyzer
-
-crawler = Crawler(site_name="cafef")
-articles = crawler.get_articles_from_sitemap(limit=500)
-
-analyzer = TrendingAnalyzer()
-
-# Lấy trending từ 7 ngày gần đây
-trending = analyzer.get_trending(
-    articles_df=articles,
-    time_window='7d',  # '24h', '7d', '30d', '90d'
-    top_n=25
-)
-
-print("📊 Trending last 7 days:")
-for keyword, stats in trending.items():
-    print(f"{keyword}: {stats['count']} occurrences")
-```
-
-**Output:**
-```
-📊 Trending last 7 days:
-chứng khoán: {'count': 45, 'first_mention': 2025-01-15, 'last_mention': 2025-01-22}
-nhà đầu tư: {'count': 32, ...}
-```
-
-**Parameters:**
-- `articles_df` (DataFrame): DataFrame chứa tin tức (phải có cột 'publish_time')
-- `time_window` (str): Khoảng thời gian ('24h', '7d', '30d', '90d')
-- `top_n` (int): Top N keywords
-
----
-
-### `analyze_sentiment(texts)`
-
-Phân tích cảm xúc (Positive/Negative) trong text.
-
-```python
-analyzer = TrendingAnalyzer()
-
-texts = [
-    "Chứng khoán tăng mạnh hôm nay",  # Tích cực
-    "Thị trường suy thoái, nhà đầu tư lo lắng",  # Tiêu cực
-]
-
-sentiments = analyzer.analyze_sentiment(texts)
-
-print(sentiments)
-# [{'text': '...', 'sentiment': 'positive', 'score': 0.85},
-#  {'text': '...', 'sentiment': 'negative', 'score': -0.72}]
-```
-
----
-
-## 4. Ví Dụ Thực Tế
-
-### Ví Dụ 1: Tìm Keyword Phổ Biến Hôm Nay
-
-```python
-from vnstock_news import Crawler, TrendingAnalyzer
+from vnstock_news import Crawler
 import pandas as pd
+import re
 
-# Bước 1: Lấy tin mới nhất
-crawler = Crawler(site_name="cafef")
+crawler = Crawler(site_name="vnexpress")
 articles = crawler.get_articles_from_feed(limit_per_feed=50)
 
-print(f"📰 Lấy {len(articles)} bài viết")
+# Convert to DataFrame
+df = pd.DataFrame(articles)
 
-# Bước 2: Phân tích
-analyzer = TrendingAnalyzer(min_frequency=2)
-keywords = analyzer.extract_keywords(
-    texts=articles['title'].tolist(),
-    top_n=20
-)
+# Extract keywords từ title
+def extract_words(text):
+    if not text:
+        return []
+    words = re.findall(r'\w+', text.lower())
+    return [w for w in words if len(w) >= 3]
 
-# Bước 3: Hiển thị
-print("\n🔥 Các từ khóa hôm nay:\n")
-for i, (keyword, count) in enumerate(keywords.items(), 1):
-    print(f"{i:2d}. {keyword:20s} - {count:3d} lần")
+df['keywords'] = df['title'].apply(extract_words)
 
-# Bước 4: Lưu
-result_df = pd.DataFrame(
-    [{'keyword': k, 'frequency': v} for k, v in keywords.items()]
-)
-result_df.to_csv("trending_keywords.csv", index=False)
-```
+# Flatten và đếm
+all_keywords = [word for keywords in df['keywords'] for word in keywords]
+keyword_counts = pd.Series(all_keywords).value_counts().head(20)
 
-**Output:**
-```
-📰 Lấy 47 bài viết
-
-🔥 Các từ khóa hôm nay:
-
- 1. chứng khoán       -  45 lần
- 2. nhà đầu tư        -  32 lần
- 3. thị trường        -  28 lần
- 4. tăng              -  25 lần
- 5. giá cổ phiếu      -  20 lần
- ...
+print(keyword_counts)
 ```
 
 ---
 
-### Ví Dụ 2: So Sánh Trending Giữa 2 Báo
-
-```python
-from vnstock_news import Crawler, TrendingAnalyzer
-import pandas as pd
-
-analyzer = TrendingAnalyzer()
-
-# Lấy từ CafeF
-cafef_crawler = Crawler(site_name="cafef")
-cafef_articles = cafef_crawler.get_articles_from_feed(limit_per_feed=30)
-cafef_keywords = analyzer.extract_keywords(cafef_articles['title'].tolist(), top_n=10)
-
-# Lấy từ VietStock
-vietstock_crawler = Crawler(site_name="vietstock")
-vietstock_articles = vietstock_crawler.get_articles_from_feed(limit_per_feed=30)
-vietstock_keywords = analyzer.extract_keywords(vietstock_articles['title'].tolist(), top_n=10)
-
-# So sánh
-print("CafeF Top 10:")
-for i, (k, v) in enumerate(list(cafef_keywords.items())[:10], 1):
-    print(f"  {i}. {k}: {v}")
-
-print("\nVietStock Top 10:")
-for i, (k, v) in enumerate(list(vietstock_keywords.items())[:10], 1):
-    print(f"  {i}. {k}: {v}")
-
-# Keywords chỉ có ở CafeF
-cafef_only = set(cafef_keywords.keys()) - set(vietstock_keywords.keys())
-print(f"\nChỉ CafeF bàn luận: {cafef_only}")
-```
+## 5. Best Practices & Tips
 
 ---
 
-### Ví Dụ 3: Trending Theo Thời Gian (Time Series)
+## 5. Best Practices & Tips
 
-```python
-from vnstock_news import Crawler, TrendingAnalyzer
-from datetime import datetime, timedelta
-import pandas as pd
+1. **Sử dụng TrendingAnalyzer thực tế:**
+   ```python
+   from vnstock_news.trending.analyzer import TrendingAnalyzer  # Đúng
+   # KHÔNG: from vnstock_news import TrendingAnalyzer
+   ```
 
-crawler = Crawler(site_name="cafef")
+2. **Update trends từng text một:**
+   ```python
+   for text in texts:
+       analyzer.update_trends(text, ngram_range=[2, 3, 4])
+   ```
 
-# Lấy tin từ 30 ngày gần đây
-articles = crawler.get_articles_from_sitemap(limit=1000)
+3. **Reset sau mỗi phiên phân tích:**
+   ```python
+   analyzer.reset_trends()  # Reset counter
+   ```
 
-analyzer = TrendingAnalyzer()
-
-# Phân tích từng tuần
-trending_by_week = {}
-
-for i in range(4):  # 4 tuần
-    start_date = datetime.now() - timedelta(days=7*(i+1))
-    end_date = datetime.now() - timedelta(days=7*i)
-    
-    # Lọc bài trong khoảng thời gian
-    week_articles = articles[
-        (articles['publish_time'] >= start_date) & 
-        (articles['publish_time'] < end_date)
-    ]
-    
-    if len(week_articles) > 0:
-        keywords = analyzer.extract_keywords(
-            week_articles['title'].tolist(),
-            top_n=5
-        )
-        
-        week_name = f"Week {4-i} ({start_date.strftime('%d/%m')} - {end_date.strftime('%d/%m')})"
-        trending_by_week[week_name] = keywords
-
-# Hiển thị
-for week, keywords in trending_by_week.items():
-    print(f"\n{week}:")
-    for k, v in keywords.items():
-        print(f"  - {k}: {v}")
-```
-
-**Output:**
-```
-Week 1 (08/01 - 15/01):
-  - chứng khoán: 45
-  - nhà đầu tư: 32
-
-Week 2 (01/01 - 08/01):
-  - lạm phát: 28
-  - lãi suất: 25
-```
+4. **Load Vietnamese stopwords:**
+   ```python
+   import os
+   stopwords_path = os.path.join(
+       os.path.dirname(vnstock_news.__file__),
+       'config', 'vietnamese-stopwords.txt'
+   )
+   analyzer = TrendingAnalyzer(stop_words_file=stopwords_path)
+   ```
 
 ---
 
-### Ví Dụ 4: Real-time Monitoring Với vnstock_news Main
+## 6. Roadmap & Tương Lai
 
-```python
-# main.py có script news_monitor sẵn
-from vnstock_news.main import news_monitor
+Module TrendingAnalyzer đang được phát triển. Các tính năng có thể có trong tương lai:
 
-# Hoặc sử dụng trực tiếp:
-from vnstock_news import Crawler, TrendingAnalyzer
-import asyncio
-from datetime import datetime
-
-async def monitor_news():
-    """Monitor tin tức theo thời gian thực"""
-    
-    sites = ["cafef", "tuoitre", "vietstock"]
-    
-    crawler = Crawler()
-    analyzer = TrendingAnalyzer()
-    
-    article_history = []
-    
-    while True:
-        print(f"\n{'='*60}")
-        print(f"📰 Monitoring at {datetime.now().strftime('%H:%M:%S')}")
-        print(f"{'='*60}")
-        
-        for site_name in sites:
-            try:
-                c = Crawler(site_name=site_name)
-                articles = c.get_articles_from_feed(limit_per_feed=20)
-                
-                keywords = analyzer.extract_keywords(
-                    articles['title'].tolist(),
-                    top_n=5
-                )
-                
-                print(f"\n📊 {site_name.upper()}:")
-                for keyword, count in keywords.items():
-                    print(f"  {keyword}: {count}")
-                
-                article_history.extend(articles.to_dict('records'))
-                
-            except Exception as e:
-                print(f"❌ Error fetching {site_name}: {e}")
-        
-        # Tổng thể trending
-        if len(article_history) > 0:
-            print(f"\n🔥 OVERALL TRENDING (từ {len(article_history)} bài):")
-            all_titles = [a['title'] for a in article_history]
-            overall_keywords = analyzer.extract_keywords(all_titles, top_n=10)
-            
-            for i, (keyword, count) in enumerate(overall_keywords.items(), 1):
-                print(f"  {i}. {keyword}: {count}")
-        
-        # Chờ 60 phút rồi lặp lại
-        print("\n⏳ Chờ 1 giờ...")
-        await asyncio.sleep(3600)
-
-# Chạy
-asyncio.run(monitor_news())
-```
+- ✅ N-gram phrase extraction (đã có)
+- ⏳ Simple keyword extraction method
+- ⏳ Time-based trending analysis  
+- ⏳ Sentiment analysis
+- ⏳ Multi-source comparison
+- ⏳ Visualization helpers
 
 ---
 
-## 5. Tối Ưu Hóa Kết Quả
+## 7. Kết Luận
 
-### Loại Bỏ Từ Không Cần
+**Tóm tắt:**
+- ⚠️ TrendingAnalyzer KHÔNG được export trong package chính
+- ⚠️ API thực tế: `update_trends()`, `get_top_trends()`, `reset_trends()`
+- ✅ Bạn có thể tự implement keyword extraction với `Counter` hoặc `pandas`
+- ✅ Hoặc dùng thư viện khác như `sklearn.feature_extraction.text.CountVectorizer`
 
-Một số từ không mang ý nghĩa (stopwords) nên loại bỏ:
-
-```python
-analyzer = TrendingAnalyzer(
-    min_frequency=3,      # Loại bỏ từ xuất hiện < 3 lần
-    min_word_length=3,    # Loại bỏ từ < 3 ký tự
-    language='vietnamese'
-)
-
-# Dùng custom stopwords
-from vnstock_news import TrendingAnalyzer
-
-custom_stopwords = ['là', 'và', 'của', 'bị', 'được', 'có', 'cái', 'này', 'đó']
-
-analyzer = TrendingAnalyzer(
-    custom_stopwords=custom_stopwords
-)
-```
-
-### Chuẩn Hóa Text
-
-```python
-def preprocess_text(text):
-    """Chuẩn hóa text"""
-    # Chuyển thành chữ thường
-    text = text.lower()
-    
-    # Xóa dấu ngoặc, ký tự đặc biệt
-    import re
-    text = re.sub(r'[^a-zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ\s]', '', text)
-    
-    # Xóa khoảng trắng thừa
-    text = re.sub(r'\s+', ' ', text).strip()
-    
-    return text
-
-# Sử dụng
-articles['title_clean'] = articles['title'].apply(preprocess_text)
-keywords = analyzer.extract_keywords(articles['title_clean'].tolist())
-```
-
----
-
-## 6. Xuất Kết Quả
-
-### Export CSV
-
-```python
-from vnstock_news import TrendingAnalyzer
-import pandas as pd
-
-keywords = {
-    'chứng khoán': 45,
-    'nhà đầu tư': 32,
-    'thị trường': 28
-}
-
-# Chuyển sang DataFrame
-df = pd.DataFrame([
-    {'keyword': k, 'frequency': v, 'percentage': v/sum(keywords.values())*100}
-    for k, v in keywords.items()
-])
-
-df = df.sort_values('frequency', ascending=False)
-
-# Lưu
-df.to_csv('keywords.csv', index=False, encoding='utf-8-sig')
-
-print(df)
-```
-
-**Output CSV:**
-```
-keyword,frequency,percentage
-chứng khoán,45,42.86
-nhà đầu tư,32,30.48
-thị trường,28,26.67
-```
-
----
-
-### Visualize với Matplotlib
-
-```python
-import matplotlib.pyplot as plt
-from vnstock_news import TrendingAnalyzer
-
-keywords = analyzer.extract_keywords(articles['title'].tolist(), top_n=10)
-
-# Vẽ biểu đồ
-plt.figure(figsize=(12, 6))
-plt.barh(list(keywords.keys()), list(keywords.values()), color='steelblue')
-plt.xlabel('Frequency')
-plt.title('Trending Keywords')
-plt.tight_layout()
-plt.savefig('keywords.png', dpi=100)
-plt.show()
-```
-
----
-
-## 7. Best Practices
-
-| ✅ Nên Làm | ❌ Không Nên |
-|-----------|-------------|
-| Phân tích từ nội dung đầy đủ (content) | Chỉ phân tích tiêu đề (có thể thiếu ngữ cảnh) |
-| Loại bỏ stopwords | Giữ tất cả các từ |
-| Chuẩn hóa text trước phân tích | Dùng text thô |
-| Lọc theo thời gian trước phân tích | Phân tích tất cả cùng lúc |
-| Đặt min_frequency phù hợp | Đặt quá cao hoặc quá thấp |
-| Kết hợp nhiều nguồn tin | Chỉ dùng 1 báo |
-
----
-
-## 8. Troubleshooting
-
-| Vấn đề | Nguyên Nhân | Giải Pháp |
-|-------|-----------|---------|
-| Keyword không hợp lý | Stopwords không đủ | Thêm custom stopwords |
-| Quá nhiều keyword tầm thường | min_frequency quá thấp | Tăng min_frequency |
-| Thiếu keyword quan trọng | min_frequency quá cao | Giảm min_frequency |
-| Lỗi tiếng Việt | Encoding sai | Dùng utf-8, gọi preprocess_text() |
-| Chậm | Phân tích quá nhiều text | Giảm số lượng text, dùng parallel processing |
-
----
-
-## Tổng Kết
-
-**TrendingAnalyzer** giúp bạn:
-- ✅ Tìm keyword phổ biến từ tin tức
-- ✅ Phát hiện xu hướng theo thời gian
-- ✅ So sánh trending giữa các báo
-- ✅ Monitor tin tức real-time
-- ✅ Phân tích cảm xúc
-
-**Workflow cơ bản:**
-```python
-1. Lấy tin → Crawler.get_articles_from_feed()
-2. Phân tích → TrendingAnalyzer.extract_keywords()
-3. Lưu kết quả → DataFrame.to_csv()
-4. Visualize → Matplotlib/Pandas plot
-```
+**Khuyến nghị:**
+- Sử dụng `collections.Counter` cho keyword extraction đơn giản
+- Dùng TrendingAnalyzer thực tế cho n-gram phrase extraction
+- Tham khảo ví dụ trong section 4 để implement tính năng tương tự
