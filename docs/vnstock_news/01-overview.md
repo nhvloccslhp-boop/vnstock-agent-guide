@@ -321,6 +321,7 @@ from vnstock_news.config.sites import SITES_CONFIG
 ### Thu Thập Tin Từ RSS (Cách Nhanh Nhất)
 
 ```python
+import pandas as pd
 from vnstock_news import Crawler
 
 # 1. Tạo crawler cho VnExpress
@@ -330,7 +331,8 @@ crawler = Crawler(site_name="vnexpress")
 articles = crawler.get_articles_from_feed(limit_per_feed=10)
 
 # 3. Lưu vào CSV
-articles.to_csv("vnexpress_news.csv", index=False, encoding='utf-8-sig')
+df = pd.DataFrame(articles)
+df.to_csv("vnexpress_news.csv", index=False, encoding='utf-8-sig')
 
 print(f"✅ Đã lấy {len(articles)} bài viết")
 ```
